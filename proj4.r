@@ -10,18 +10,46 @@
 # The final version upload now is the final work we all committed for.
 
 ## Project introduction:
-# This project aims to implement Newton’s method for minimization of functions.
-# 
+# This project aims to implement Newton’s method for minimization of functions by
+# creating an optimization function that can operate broadly.
+
+# Here is a brief description of Newton’s method:
+# We start from an initial guess at the parameters, and find the value of the 
+# objective function (D), the gradient vector and the Hessian matrix at 
+# that guess. We then find an improved guess by adding the delta (a descent 
+# direction that will the objective function) to the current guess, and repeat
+# the process, until we reach at the convergence (which is judged by a certain
+# criteria specified below).
+
+# To avoid any possibility of divergence, we have to check that each new proposal 
+# for the parameters has actually reduced D and if not, repeatedly halve delta  
+# until it does. We also have to ensure that the Hessian matrix is positive definite,
+# (tested by whether it can be decomposed by Cholesky), and perturbing it to be so, 
+# if it isn’t.
+
+# Cholesky decomposition:
+# With positive definite matrices, tasks can be tackled especially easily and 
+# efficiently, which is largely because a positive definite matrix can be decomposed 
+# into the Cholesky factor (the crossproduct of an upper triangular matrix with itself).
+# Thus, in this project, instead of using solve(), we use chol(), since the constant 
+# of proportionality is smaller for Cholesky.
+
+# Before generating the newt(), we created two additional function.
+# 1) a function that approximates the Hessian matrix when it is not provided
+# 2) a function that checks whether the Hessian matrix is positive definite or 
+#    not at convergence 
 
 
 ################################## Functions ###################################
+
 # Function purpose:
-# find Hessian matrix when it is not provided by finite differencing the gradient vector 
+# This function aims to approximate the Hessian matrix when it is not provided by 
+# finite differencing the gradient vector 
 
 # Input:
-# theta = a vector of the values for the optimization parameters 
-# grad = gradient function of the objective
-# eps = the finite difference intervals
+# theta -> a vector of the values for the optimization parameters 
+# grad -> gradient function of the objective
+# eps -> the finite difference intervals
 
 # Output:
 # an approximation to the Hessian by finite differencing of the gradient vector
@@ -46,15 +74,17 @@ approx_H <- function(theta, grad, eps, ...) {
   return(hess)
 }
 
+
 # Function purpose:
-# To check whether the Hessian matrix is positive definite or not at convergence
+# This function aims to check whether the Hessian matrix is positive definite at 
+# convergence
 
 # Input:
-# H = Hessian matrix which need to be judged 
+# H -> Hessian matrix which need to be judged 
 
 # Output:
 # When the Hessian matrix is positive definite, return the inverse of the Hessian 
-# matrix, otherwise, stop the function and rise the error information.
+# matrix, otherwise, stop the function and issue the error information.
 
 check_positive <- function(H){
   # Cholesky decomposition fails for matrices that are not positive definite
@@ -72,33 +102,38 @@ check_positive <- function(H){
 
 
 # Function purpose:
-# a optimization function to minimize the objective function by Newton’s method
+# This function aims to minimize the objective function by Newton’s method
 
 # Input:
-# theta = a vector of initial values for the optimization parameters
-# func = the objective function need to be minimized
-# grad = gradient function of the objective
-# hess = the Hessian matrix function of the objective
-# ... = any arguments of func, grad and hess after the 'theta' are passed using this
-# tol = the convergence tolerance
-# fscale = a rough estimate of the magnitude of func near the optimum
-# maxit = maximum number of Newton iterations to try before giving up
-# max.half = maximum number of times a step should be halved before concluding 
+# theta -> a vector of initial values for the optimization parameters
+# func -> the objective function need to be minimized
+# grad -> gradient function of the objective
+# hess -> the Hessian matrix function of the objective
+# ... -> any arguments of func, grad and hess after the 'theta' are passed using this
+# tol -> the convergence tolerance
+# fscale -> a rough estimate of the magnitude of func near the optimum
+# maxit -> maximum number of Newton iterations to try before giving up
+# max.half -> maximum number of times a step should be halved before concluding 
 #            that the step has failed to improve the objective.
-# eps = the finite difference intervals to use when a Hessian function is not provided
+# eps -> the finite difference intervals to use when a Hessian function is not provided
 
 # Output:
-# if the function can find the minimization successfully, it will return following:
-# f = the value of the objective function at the minimum
-# theta = the value of the parameters at the minimum
-# iter = the number of iterations taken to reach the minimum
-# g = the gradient vector at the minimum
-# Hi = the inverse of the Hessian matrix at the minimum 
-# Otherwise, the function will stop with the error or warning under following situations:
-# 1. If the objective or derivatives are not finite at the initial theta
-# 2. If the step fails to reduce the objective despite trying max.half step halvings
-# 3. If maxit is reached without convergence
-# 4. If the Hessian is not positive definite at convergence
+# if the function can find the minimization within the maximum number of Newton 
+# iterations successfully, it will return a list contains the following:
+
+# 1) f -> the value of the objective function at the minimum
+# 2) theta -> the value of the parameters at the minimum
+# 3) iter -> the number of iterations taken to reach the minimum
+# 4) g -> the gradient vector at the minimum
+# 5) Hi -> the inverse of the Hessian matrix at the minimum 
+
+# Otherwise, the function will stop with the error or warnings under the following 
+# circumstances:
+
+# 1) If the objective or derivatives are not finite at the initial *theta*
+# 2) If the step fails to reduce the objective despite trying *max.half* step halvings
+# 3) If *maxit* is reached without convergence
+# 4) If the Hessian is not positive definite at convergence
 
 newt <- function(theta,func,grad,hess=NULL,...,tol=1e-8,fscale=1,maxit=100,
                  max.half=20,eps=1e-6,k=2){
@@ -140,14 +175,17 @@ newt <- function(theta,func,grad,hess=NULL,...,tol=1e-8,fscale=1,maxit=100,
   while (iter < maxit) {
     
     # convergence reached before getting to the maximum number of Newton iterations
+    # convergence is judged by seeing whether all elements of the gradient vector 
+    # have absolute value less than *tol* times the absolute value of the 
+    # objective function plus *fscale*
     if (max(abs(gradient)) < (abs(ob_func)+fscale)*tol){
       
       # check if the Hessian matrix is positive definite at convergence
       # if Hessian is positive definite, return the following list,
       # Otherwise this function (newt) will be stopped
       H_inverse <- check_positive(H)
-      return(list('f.value'=ob_func, 'theta'=theta, 'iter'=iter, 
-                  'gradient'=gradient, 'H.inverse'=H_inverse))
+      return(list('f'=ob_func, 'theta'=theta, 'iter'=iter, 
+                  'g'=gradient, 'Hi'=H_inverse))
     }
     
     else{
@@ -170,36 +208,40 @@ newt <- function(theta,func,grad,hess=NULL,...,tol=1e-8,fscale=1,maxit=100,
       # Cholesky for later calculation
       H_chol <- chol(H)
       
-      # calculate delta ∆ -> a descent direction that will reduce the objective function
+      # calculate delta -> a descent direction that will reduce the objective function
       delta <- backsolve(H_chol, forwardsolve(t(H_chol), -gradient))
       
-      # ∆ might overshoot and increase the objective function
-      # If so, repeatedly halve ∆ until D(θ + ∆) < D(θ)
+      # delta might overshoot and increase the objective function
+      # If so, repeatedly halve delta until the value of the objective is decreased
+      
       # initialize a counter for the number of times a step halved 
       half_iter <- 0
-      # only halve delta when current theta plus it will increase the objective function
+      # only halve delta when the value of the objective at the current theta plus 
+      # delta is greater than the current value of the objective 
       while (func(theta + delta, ...) > ob_func) {
-        # check if the step fails to reduce the objective despite trying max.half 
+        # check if the step fails to reduce the objective despite trying *max.half*
         # step halvings
         if (half_iter < max.half) {
           delta <- delta / 2
           half_iter <- half_iter + 1
         } 
         else {
-          # if the step fails to reduce the objective despite trying max.half step halvings
+          # if the step fails to reduce the objective despite trying *max.half*
+          # step halvings
           stop(paste("The step fails to reduce the objective despite trying", 
                      as.character(max.half), "halvings"))
         }
       }
       
-      # Updating theta
+      # update theta
       theta <- theta + delta
-      # updating function values
+      # update function values
       ob_func <- func(theta, ...)
-      # updating gradient vector
+      # update gradient vector
       gradient <- grad(theta,...) 
-      # updating Hessian matrix
-      # Hessian calculation by finite differencing if f has no hessian attribute
+      # update Hessian matrix
+      # if the Hessian matrix is not supplied, then calculate the approximation to it 
+      # by finite differencing of the gradient vector
       if (is.null(hess)) {
         # the approximation is generated from the function approx_H()
         H <- approx_H(theta, grad, eps,...)
@@ -231,8 +273,8 @@ newt <- function(theta,func,grad,hess=NULL,...,tol=1e-8,fscale=1,maxit=100,
   if (max(abs(gradient)) < (abs(ob_func)+fscale)*tol){
     # check if the Hessian matrix is positive definite at convergence
     H_inverse <- check_positive(H)
-    return(list('f.value'=ob_func, 'theta'=theta, 'iter'=iter, 
-                'gradient'=gradient, 'H.inverse'=H_inverse))
+    return(list('f'=ob_func, 'theta'=theta, 'iter'=iter, 
+                'g'=gradient, 'Hi'=H_inverse))
     
   } 
   

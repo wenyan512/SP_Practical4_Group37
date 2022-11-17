@@ -3,13 +3,18 @@
 #               Huiyu WU (s2303136), 
 #               Xuantao LI (s1822046) 
 
-## Group contribution:
+# github repo address: https://github.com/wenyan512/SP_Practical4_Group37.git
+
+################################ Group contribution ############################
+
 # Overall, the weights of contribution for each group member are fairly equal. 
 # We wrote our own coding based on our personal understanding of these questions. 
 # We shared our ideas when anyone stick in somewhere and all of us enjoyed the teamwork. 
 # The final version upload now is the final work we all committed for.
 
-## Project introduction:
+
+############################### Project introduction ###########################
+
 # This project aims to implement Newton’s method for minimization of functions by
 # creating an optimization function that can operate broadly.
 
@@ -166,7 +171,7 @@ newt <- function(theta,func,grad,hess=NULL,...,tol=1e-8,fscale=1,maxit=100,
   }
   
   
-############################## Start Minimization ##############################
+##--------------------------- Start Minimization -----------------------------##
   
   # keep repeating the process until we arrive at the optimal convergence
   # initialize the number of Newton iterations 
